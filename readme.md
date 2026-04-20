@@ -1,7 +1,7 @@
 # CryptoLens Intelligence API — Documentación de Endpoints
 
-**Base URL:** http://localhost:8000  
-**Documentación interactiva:** http://localhost:8000/docs  
+**Base URL:** https://cryptolens-api-production.up.railway.app
+**Documentación interactiva:** https://cryptolens-api-production.up.railway.app/docs  
 **Versión:** 2.0.0  
 
 ---
