@@ -273,7 +273,7 @@ Devuelve las criptomonedas con mayor tracción en el mercado ahora mismo. Se act
 
 ---
 
-## 🗂Categories
+## Categories
 
 ### GET /categories
 
