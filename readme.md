@@ -74,6 +74,51 @@ Solo devuelve el registro más reciente por activo, sin duplicados.
       }
     ]
 
+### GET /market/history/{symbol}?hours={horas}
+Devuleve el historial de precios desde la DB local.
+Es util para graficas de linea de precios con volumen.
+En la variable {horas} son horas hacia atras, por default esta 24 y maximo es 168 (7 dias)
+
+    [
+        {
+            {
+              "symbol": "BTC",
+              "name": "Bitcoin",
+              "hours": 32,
+              "count": 383,
+              "data": [
+                {
+                  "timestamp": "2026-04-25T19:51:21",
+                  "price_usd": 77230.8,
+                  "volume_24h": 18854600000,
+                  "market_cap": 1546210000000,
+                  "change_24h": -0.47215
+                },
+                {
+                  "timestamp": "2026-04-25T19:56:21",
+                  "price_usd": 77272.1,
+                  "volume_24h": 18845600000,
+                  "market_cap": 1547040000000,
+                  "change_24h": -0.433281
+                },
+                {
+                  "timestamp": "2026-04-25T20:01:21",
+                  "price_usd": 77323.8,
+                  "volume_24h": 18747200000,
+                  "market_cap": 1548080000000,
+                  "change_24h": -0.413487
+                },
+                {
+                  "timestamp": "2026-04-25T20:06:21",
+                  "price_usd": 77342.1,
+                  "volume_24h": 18654600000,
+                  "market_cap": 1548440000000,
+                  "change_24h": -0.297903
+                }
+            }
+        }
+    ]
+
 ---
 
 ## Analysis — Indicadores Técnicos
@@ -125,6 +170,117 @@ Parámetros:
 | ADX | Fuerza | > 40 | < 20 |
 | EMA 9 vs 21 | Cruce | EMA9 > EMA21 | EMA9 < EMA21 |
 | LSMA 200 | Macro | Precio > LSMA200 | Precio < LSMA200 |
+
+### GET /history/{symbol}
+
+Historial de indicadores tecnicos calculados.
+Es util para graficar RSI, MACD y Bollinger en el tiempo.
+Tiene 50 registros historicos
+
+    {
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "count": 50,
+      "data": [
+            {
+              "timestamp": "2026-04-26T03:06:22",
+              "rsi": 62.71,
+              "macd": 2075.32,
+              "macd_signal": 1809.17,
+              "macd_histogram": 266.147,
+              "bb_upper": 79845.1,
+              "bb_middle": 74472.3,
+              "bb_lower": 69099.5,
+              "bb_pct_b": 0.7941,
+              "ema_9": 76624.9,
+              "ema_21": 74600,
+              "adx": 35.47
+            },
+            {
+              "timestamp": "2026-04-26T03:36:22",
+              "rsi": 62.71,
+              "macd": 2075.32,
+              "macd_signal": 1809.17,
+              "macd_histogram": 266.147,
+              "bb_upper": 79845.1,
+              "bb_middle": 74472.3,
+              "bb_lower": 69099.5,
+              "bb_pct_b": 0.7941,
+              "ema_9": 76624.9,
+              "ema_21": 74600,
+              "adx": 35.47
+            },
+            {
+              "timestamp": "2026-04-26T04:06:22",
+              "rsi": 62.71,
+              "macd": 2075.32,
+              "macd_signal": 1809.17,
+              "macd_histogram": 266.147,
+              "bb_upper": 79845.1,
+              "bb_middle": 74472.3,
+              "bb_lower": 69099.5,
+              "bb_pct_b": 0.7941,
+              "ema_9": 76624.9,
+              "ema_21": 74600,
+              "adx": 35.47
+            }
+        ]
+    }
+
+---
+
+## Ohlcv - Velas Japones e histograma de volumen
+
+### GET /ohlcv/{symbol}?days={dias}
+
+Con este endpoint se logra realizar velas japonesas e histogramas de volumen.
+Devuelve datos OHLCV diarios.
+En la variable dias, son numero de dias hacia atras (1-60)
+
+    {
+      "symbol": "BTC",
+      "name": "Bitcoin",
+      "days": 5,
+      "count": 4,
+      "data": [
+        {
+          "timestamp": "2026-04-23T00:00:00.000Z",
+          "open": 78203.873186,
+          "high": 78676.939081,
+          "low": 77014.452508,
+          "close": 78268.954108,
+          "volume": 40354900915.57,
+          "market_cap": 1566830481949.34
+        },
+        {
+          "timestamp": "2026-04-24T00:00:00.000Z",
+          "open": 78263.823773,
+          "high": 78554.094933,
+          "low": 77318.446412,
+          "close": 77455.315618,
+          "volume": 32784213526.2,
+          "market_cap": 1550717824694.32
+        },
+        {
+          "timestamp": "2026-04-25T00:00:00.000Z",
+          "open": 77457.21407,
+          "high": 77882.642288,
+          "low": 77184.661975,
+          "close": 77612.017875,
+          "volume": 16702933134.07,
+          "market_cap": 1553873094608.76
+        },
+        {
+          "timestamp": "2026-04-26T00:00:00.000Z",
+          "open": 77613.119477,
+          "high": 78923.562966,
+          "low": 77334.888559,
+          "close": 78657.539423,
+          "volume": 21482934749.76,
+          "market_cap": 1574890108360.41
+        }
+      ]
+    }
 
 ---
 
