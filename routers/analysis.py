@@ -53,3 +53,52 @@ def get_analysis(symbol: str, db: Session = Depends(get_db)):
             )
         }
     }
+
+@router.get("/history/{symbol}")
+def get_indicators_history(
+    symbol: str,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """
+    Historial de indicadores técnicos calculados.
+    Útil para graficar RSI, MACD y Bollinger en el tiempo.
+    limit: número de registros históricos (default 50)
+    """
+    crypto = db.query(Crypto).filter(Crypto.symbol == symbol.upper()).first()
+    if not crypto:
+        raise HTTPException(status_code=404, detail=f"{symbol} no encontrado")
+
+    records = (
+        db.query(TechnicalIndicator)
+        .filter(TechnicalIndicator.crypto_id == crypto.id)
+        .order_by(TechnicalIndicator.timestamp.desc())
+        .limit(limit)
+        .all()
+    )
+
+    if not records:
+        raise HTTPException(status_code=404, detail="Sin historial de indicadores")
+
+    return {
+        "symbol": crypto.symbol,
+        "name":   crypto.name,
+        "count":  len(records),
+        "data": [
+            {
+                "timestamp":      r.timestamp,
+                "rsi":            r.rsi,
+                "macd":           r.macd,
+                "macd_signal":    r.macd_signal,
+                "macd_histogram": r.macd_histogram,
+                "bb_upper":       r.bb_upper,
+                "bb_middle":      r.bb_middle,
+                "bb_lower":       r.bb_lower,
+                "bb_pct_b":       r.bb_pct_b,
+                "ema_9":          r.ema_9,
+                "ema_21":         r.ema_21,
+                "adx":            r.adx
+            }
+            for r in reversed(records)
+        ]
+    }

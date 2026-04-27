@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from routers import market, analysis, signals, ranking, whales
 from routers import altcoin_season, trending, categories, news, performance
 from tasks.scheduler import start_scheduler, task_market_data, task_indicators_and_signals, task_whale_activity
+from routers import ohlcv
 
 app = FastAPI(
     title="CryptoLens Intelligence API",
@@ -19,6 +20,7 @@ app.include_router(trending.router,       prefix="/trending",       tags=["Trend
 app.include_router(categories.router,     prefix="/categories",     tags=["Categories"])
 app.include_router(news.router,           prefix="/news",           tags=["News"])
 app.include_router(performance.router,    prefix="/performance",    tags=["Performance"])
+app.include_router(ohlcv.router, prefix="/ohlcv", tags=["OHLCV"])
 
 @app.on_event("startup")
 async def startup_event():
