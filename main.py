@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from routers import market, analysis, signals, ranking, whales
 from routers import altcoin_season, trending, categories, news, performance
 from tasks.scheduler import start_scheduler, task_market_data, task_indicators_and_signals, task_whale_activity
@@ -8,6 +9,14 @@ app = FastAPI(
     title="CryptoLens Intelligence API",
     description="Plataforma SaaS de análisis financiero cripto — Top 50 por market cap",
     version="2.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(market.router,         prefix="/market",         tags=["Market"])
@@ -20,7 +29,7 @@ app.include_router(trending.router,       prefix="/trending",       tags=["Trend
 app.include_router(categories.router,     prefix="/categories",     tags=["Categories"])
 app.include_router(news.router,           prefix="/news",           tags=["News"])
 app.include_router(performance.router,    prefix="/performance",    tags=["Performance"])
-app.include_router(ohlcv.router, prefix="/ohlcv", tags=["OHLCV"])
+app.include_router(ohlcv.router,          prefix="/ohlcv",          tags=["OHLCV"])
 
 @app.on_event("startup")
 async def startup_event():
