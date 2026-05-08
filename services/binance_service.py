@@ -20,11 +20,7 @@ def get_binance_symbol(symbol: str) -> str:
     return f"{symbol.upper()}USDT"
 
 def fetch_klines(symbol: str, timeframe: str, limit: int = 200) -> list:
-    """
-    Obtiene velas OHLCV de Binance para cualquier timeframe.
-    No requiere API key — endpoint público.
-    Devuelve lista de dicts con open, high, low, close, volume.
-    """
+
     pair = get_binance_symbol(symbol)
     if not pair:
         return []
@@ -54,7 +50,7 @@ def fetch_klines(symbol: str, timeframe: str, limit: int = 200) -> list:
             for c in raw
         ]
     except Exception as e:
-        print(f"  ❌ Binance klines {symbol} {timeframe}: {e}")
+        print(f" Binance klines {symbol} {timeframe}: {e}")
         return []
 
 def fetch_funding_rate(symbol: str) -> dict:

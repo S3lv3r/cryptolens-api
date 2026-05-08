@@ -18,10 +18,7 @@ def find_swing_lows(lows: list, window: int = 3) -> list:
     return swings
 
 def detect_bos(swing_highs: list, swing_lows: list, closes: list, volumes: list) -> dict:
-    """
-    Break of Structure — precio cierra sobre estructura previa con volumen confirmado.
-    Solo válido con cierre confirmado Y aumento de volumen.
-    """
+
     bos = {"detected": False, "price": None, "direction": None}
 
     if len(swing_highs) < 2 or len(swing_lows) < 2:
@@ -42,10 +39,7 @@ def detect_bos(swing_highs: list, swing_lows: list, closes: list, volumes: list)
     return bos
 
 def detect_choch(swing_highs: list, swing_lows: list) -> dict:
-    """
-    Change of Character — detección temprana de cambio de dirección.
-    Busca ruptura de la estructura de mínimos/máximos previos.
-    """
+
     choch = {"detected": False, "price": None, "direction": None}
 
     if len(swing_highs) < 3 or len(swing_lows) < 3:
@@ -85,7 +79,6 @@ def detect_market_structure(symbol: str, timeframe: str = "1d") -> dict:
     bos         = detect_bos(swing_highs, swing_lows, closes, volumes)
     choch       = detect_choch(swing_highs, swing_lows)
 
-    # Soporte y resistencia más cercanos
     resistance = min(
         [s["price"] for s in swing_highs if s["price"] > price],
         default=None

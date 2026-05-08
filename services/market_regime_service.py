@@ -12,10 +12,7 @@ def calculate_aggregate_rsi(top_cryptos: list) -> float:
     return round(max(0, min(100, rsi_approx)), 2)
 
 def detect_market_regime() -> dict:
-    """
-    Clasifica el estado global del mercado en 6 regímenes.
-    Usa CMC para métricas globales + Binance BTC para volatilidad.
-    """
+
     try:
         metrics     = fetch_global_metrics()
         top_cryptos = fetch_top_cryptos(limit=50)

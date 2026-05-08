@@ -8,7 +8,6 @@ from services.technical_service import (
 )
 
 def calculate_atr(highs: list, lows: list, closes: list, period: int = 14) -> float:
-    """Average True Range — mide volatilidad real."""
     if len(closes) < period + 1:
         return 0.0
     high  = pd.Series(highs)
@@ -22,7 +21,6 @@ def calculate_atr(highs: list, lows: list, closes: list, period: int = 14) -> fl
     return round(tr.rolling(period).mean().iloc[-1], 6)
 
 def determine_trend(ema_9, ema_21, ema_50, ema_200, price, macd, macd_signal) -> dict:
-    """Determina dirección y fuerza de tendencia."""
     bullish_signals = 0
     bearish_signals = 0
 
@@ -59,7 +57,6 @@ def determine_trend(ema_9, ema_21, ema_50, ema_200, price, macd, macd_signal) ->
     return {"direction": direction, "strength": strength, "bull_ratio": round(ratio, 2)}
 
 def determine_market_condition(rsi, bb_pct_b, atr, adx) -> str:
-    """Clasifica condición actual del mercado."""
     if rsi > 75 and bb_pct_b > 0.9:
         return "high_volatility"
     elif rsi < 25 and bb_pct_b < 0.1:
@@ -70,10 +67,6 @@ def determine_market_condition(rsi, bb_pct_b, atr, adx) -> str:
         return "normal"
 
 def analyze_timeframe(symbol: str, timeframe: str) -> dict | None:
-    """
-    Calcula todos los indicadores para un timeframe específico.
-    Usa datos de Binance — no comparte datos entre timeframes.
-    """
     limit_map = {
         "15m": 200,
         "1h":  200,

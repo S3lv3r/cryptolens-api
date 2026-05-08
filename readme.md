@@ -495,6 +495,219 @@ Devuelve el rendimiento del precio de un activo en múltiples horizontes tempora
 
 ---
 
+-- Version 3.0.0  --
+
+## IA 
+
+### POST /ai/analyze
+
+Envia una pregunta en lenguaje natural y la IA responde usando todos los datos
+tecnicos disponibles del activo
+
+BODY
+
+      {
+        "symbol": "XLM",
+        "query": "Analiza XLM estos últimos días"
+      }
+
+EJEMPLOS DE QUERIES
+
+    { "symbol": "BTC", "query": "¿Cómo está el mercado de Bitcoin hoy?" }
+
+    { "symbol": "ETH", "query": "¿Está ETH en zona de sobrecompra?" }
+
+    { "symbol": "SOL", "query": "Analiza la tendencia de SOL en múltiples timeframes" }
+
+    { "symbol": "XRP", "query": "¿Qué dice la estructura de mercado de XRP?" }
+
+    { "symbol": "BTC", "query": "¿Es buen momento para entrar al mercado según los indicadores?" }
+
+RESPUESTA
+
+    {
+      "symbol": "XLM",
+      "query": "Analiza XLM estos últimos días",
+      "analysis": "Stellar (XLM) muestra una estructura de mercado en consolidación...",
+      "tokens_used": 847,
+      "model": "llama-3.3-70b-versatile",
+      "context_used": "PRECIO ACTUAL: $0.172928 USD | Cambio 24h: -1.2% ..."
+    }
+
+---
+
+## Multi-Timeframe
+
+### GET /analysis/{symbol}/multi-timeframe
+
+Análisis técnico completo en 5 timeframes independientes.
+Incluye consenso global y alignment score entre temporalidades.
+
+    {
+      "symbol": "BTC",
+      "timestamp": "2026-04-20T10:00:00",
+      "consensus": {
+        "bias": "bullish",
+        "alignment_score": 0.85,
+        "confidence": 0.80,
+        "bullish_timeframes": ["1h", "4h", "1d", "1w"],
+        "bearish_timeframes": ["15m"],
+        "neutral_timeframes": [],
+        "timeframes_analyzed": 5
+      },
+      "timeframes": {
+        "15m": { "rsi": 68.2, "trend_direction": "bearish", ... },
+        "1h":  { "rsi": 55.1, "trend_direction": "bullish", ... },
+        "4h":  { "rsi": 61.3, "trend_direction": "bullish", ... },
+        "1d":  { "rsi": 58.4, "trend_direction": "strong_bullish", ... },
+        "1w":  { "rsi": 62.1, "trend_direction": "bullish", ... }
+      }
+    }
+
+---
+
+## Structure
+
+### GET /structure/{symbol}?timeframe={timeframe}
+
+Análisis de estructura de mercado.
+Detecta HH/HL/LH/LL, BOS, CHOCH, soportes, resistencias y zonas de liquidez.
+
+{timeframe} = 15m, 1h, 4h, 1d, 1w (por dafault esta en: 1d)
+
+    {
+      "symbol": "BTC",
+      "timeframe": "1d",
+      "current_price": 84500.0,
+      "market_structure": "uptrend",
+      "trend_phase": "continuation",
+      "swing_high": 86000.0,
+      "swing_low": 79000.0,
+      "current_resistance": 86000.0,
+      "current_support": 81000.0,
+      "liquidity_zone_high": 87500.0,
+      "liquidity_zone_low": 78000.0,
+      "last_bos": {
+        "detected": true,
+        "price": 82000.0,
+        "direction": "bullish"
+      },
+      "last_choch": {
+        "detected": false,
+        "price": null,
+        "direction": null
+      }
+    }
+
+---
+
+## Volatility
+
+### GET /volatility/{symbol}?timeframe={timeframe}
+
+Análisis de volatilidad contextual.
+Incluye ATR, volatilidad histórica, percentil y régimen de volatilidad.
+
+{timeframe} = 15m, 1h, 4h, 1d, 1w (deafult: 1d)
+
+    {
+      "symbol": "BTC",
+      "timeframe": "1d",
+      "current_price": 84500.0,
+      "atr": 2340.5,
+      "atr_pct": 2.77,
+      "historical_volatility": 48.3,
+      "volatility_percentile": 62.4,
+      "regime": "normal",
+      "market_condition": "Volatilidad normal. Condiciones estándar de mercado."
+    }
+
+---
+
+## Market Regime
+
+### Get /market-regime
+
+Clasificación del estado global del mercado.<br>
+Estados: trending, ranging, euphoric, panic, accumulation, distribution<br>
+Se cachea 15 minutos.
+
+| Regimen | Descripción |
+|------|------------|
+| trending | Mercado en tendencia con expansión de volumen |
+| ranging | Mercado lateral sin dirección clara |
+| euphoric | RSI extremo, volumen expansivo — alto riesgo |
+| panic | Ventas masivas generalizadas |
+| accumulation | Capital entrando, preferencia por altcoins |
+| distribution | Capital rotando hacia BTC o saliendo |
+
+    {
+      "regime": "accumulation",
+      "confidence": 0.75,
+      "description": "Acumulación detectada. Capital entrando al mercado con preferencia por altcoins.",
+      "metrics": {
+        "btc_dominance": 42.3,
+        "btc_rsi": 55.2,
+        "aggregate_rsi": 58.1,
+        "breadth": 0.72,
+        "advancing": 36,
+        "declining": 14,
+        "vol_change_24h": 12.4,
+        "mcap_change_24h": 2.1,
+        "total_market_cap": 2800000000000,
+        "total_volume_24h": 180000000000
+      }
+    }
+
+---
+
+## Derivatives
+
+### GET /derivatives/{symbol}
+
+Datos de mercado de derivados desde Binance Futures.
+Incluye funding rate, open interest, ratio long/short y order book.
+
+    {
+      "symbol": "BTC",
+      "funding_rate": {
+        "symbol": "BTC",
+        "funding_rate": 0.0001,
+        "funding_time": 1713600000000
+      },
+      "open_interest": {
+        "symbol": "BTC",
+        "open_interest": 85432.12,
+        "timestamp": 1713600000000
+      },
+      "long_short_ratio": {
+        "symbol": "BTC",
+        "long_ratio": 0.58,
+        "short_ratio": 0.42,
+        "timestamp": 1713600000000
+      },
+      "order_book": {
+        "symbol": "BTC",
+        "best_bid": 84490.0,
+        "best_ask": 84510.0,
+        "bid_volume": 12.43,
+        "ask_volume": 9.87,
+        "pressure": "buy",
+        "top_bids": [[84490, 2.1], [84480, 3.2], ...],
+        "top_asks": [[84510, 1.8], [84520, 2.4], ...]
+      }
+    }
+
+Interpretacion del funding rate
+
+| Valor | Significado |
+|------|------------|
+| > 0.01% | Mercado alcista, longs pagando a shorts |
+| < -0.01% | Mercado bajista, shorts pagando a longs |
+| ≈ 0 | Mercado equilibrado |
+
+---
+
 ## Códigos de respuesta
 
 | Código | Significado |

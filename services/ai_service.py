@@ -9,10 +9,7 @@ from database import SessionLocal
 from models import Crypto, Signal, MarketData, TechnicalIndicator
 
 def build_market_context(symbol: str) -> str:
-    """
-    Recopila todos los datos disponibles del activo
-    y los convierte en contexto para la IA.
-    """
+
     db = SessionLocal()
     context_parts = []
 
@@ -117,10 +114,7 @@ def build_market_context(symbol: str) -> str:
     return "\n".join(context_parts)
 
 def ask_ai(symbol: str, query: str) -> dict:
-    """
-    Envía el contexto del activo + la pregunta del usuario a Groq/Llama3.
-    Devuelve análisis en lenguaje natural.
-    """
+
     if not GROQ_API_KEY:
         return {"error": "GROQ_API_KEY no configurada"}
 
