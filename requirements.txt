@@ -4,6 +4,8 @@ sqlalchemy
 pymysql
 pydantic
 pandas
+numpy
 requests
 apscheduler
 python-dotenv
+groq

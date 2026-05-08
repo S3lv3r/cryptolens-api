@@ -17,3 +17,7 @@ CRYPTOMETER_BASE_URL = os.getenv("CRYPTOMETER_BASE_URL", "https://cryptometer.io
 # App
 APP_ENV = os.getenv("APP_ENV", "development")
 SECRET_KEY = os.getenv("SECRET_KEY", "cambia_esto")
+
+#GROQ
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL   = os.getenv("GROQ_MODEL", "llama3-70b-8192")
