@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKe
 from sqlalchemy.orm import relationship
 from database import Base
 from datetime import datetime
+from sqlalchemy import JSON
 # Cryptolens11
 class Crypto(Base):
     __tablename__ = "cryptos"
@@ -131,3 +132,15 @@ class SignalHistory(Base):
     result_24h      = Column(Float, nullable=True)
     result_7d       = Column(Float, nullable=True)
     result_30d      = Column(Float, nullable=True)
+
+class Alert(Base):
+    __tablename__ = "alerts"
+    id           = Column(Integer, primary_key=True, index=True)
+    symbol       = Column(String(20), index=True)
+    alert_type   = Column(String(50))
+    severity     = Column(String(20), default="medium")
+    title        = Column(String(200))
+    message      = Column(Text)
+    data         = Column(JSON, nullable=True)
+    triggered_at = Column(DateTime, default=datetime.utcnow)
+    is_active    = Column(Integer, default=1)

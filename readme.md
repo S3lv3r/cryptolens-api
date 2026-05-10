@@ -507,21 +507,31 @@ tecnicos disponibles del activo
 BODY
 
       {
-        "symbol": "XLM",
-        "query": "Analiza XLM estos últimos días"
+        "symbol": {symbol},
+        "query": {prompt}
       }
 
 EJEMPLOS DE QUERIES
 
-    { "symbol": "BTC", "query": "¿Cómo está el mercado de Bitcoin hoy?" }
+    { "symbol": "BTC", 
+    "query": "¿Cómo está el mercado de Bitcoin hoy?" 
+    }
 
-    { "symbol": "ETH", "query": "¿Está ETH en zona de sobrecompra?" }
+    { "symbol": "ETH", 
+    "query": "¿Está ETH en zona de sobrecompra?" 
+    }
 
-    { "symbol": "SOL", "query": "Analiza la tendencia de SOL en múltiples timeframes" }
+    { "symbol": "SOL", 
+    "query": "Analiza la tendencia de SOL en múltiples timeframes" 
+    }
 
-    { "symbol": "XRP", "query": "¿Qué dice la estructura de mercado de XRP?" }
+    { "symbol": "XRP", 
+    "query": "¿Qué dice la estructura de mercado de XRP?" 
+    }
 
-    { "symbol": "BTC", "query": "¿Es buen momento para entrar al mercado según los indicadores?" }
+    { "symbol": "BTC", 
+    "query": "¿Es buen momento para entrar al mercado según los indicadores?" 
+    }
 
 RESPUESTA
 
@@ -532,6 +542,110 @@ RESPUESTA
       "tokens_used": 847,
       "model": "llama-3.3-70b-versatile",
       "context_used": "PRECIO ACTUAL: $0.172928 USD | Cambio 24h: -1.2% ..."
+    }
+
+### POST /ai/compare
+
+Compara 2-4 activos usando IA con datos reales de cada uno.
+
+BODY
+
+    {
+        "symbols": {[symbol,symbol,symbol,symbol]},
+        "query": {prompt}
+    }
+
+EJEMLPLOS DE QUERIES
+
+    {
+        "symbols": ["BTC", "ETH"],
+        "query": "¿Cuál está más fuerte técnicamente esta semana?"
+    }
+    {
+        "symbols": ["DOGE", "SHIB", "PEPE"],
+        "query": "¿Cuál de los memecoins tiene mejor setup técnico?"
+    }
+    {
+        "symbols": ["BTC", "ETH", "SOL", "BNB"],
+        "query": "Rankéalos de mejor a peor setup técnico actual"
+    }
+
+RESPUESTA
+
+    {
+        "symbols": ["ETH", "SOL"],
+        "query": "¿Cuál tiene mejor setup técnico ahora mismo?",
+        "comparison": "Comparando ETH y SOL con sus datos actuales...\n\nEthereum muestra RSI de 52.3 en zona neutral con MACD positivo...\nSolana presenta RSI de 61.2 con tendencia alcista más pronunciada...",
+        "tokens_used": 1102,
+        "model": "llama-3.3-70b-versatile"
+    }
+
+---
+
+## Narrative 
+
+### GET /narrative/{symbol}
+
+Narrativa de mercado generada con IA.
+Incluye summary, bull_case, bear_case, risk_factors y market_context.
+Se cachea 30 minutos.
+
+    {
+        "symbol": "BTC",
+        "name": "Bitcoin",
+        "summary": "Bitcoin consolida por encima del soporte clave de $83,000 con momentum alcista en timeframes altos y RSI en zona neutral.",
+        "bull_case": "Si mantiene $83,000 como soporte y rompe $86,500 con volumen, el siguiente objetivo es $90,000-$92,000.",
+        "bear_case": "Una ruptura de $81,000 con volumen significativo abriría camino hacia $76,000 y posiblemente $72,000.",
+        "risk_factors": [
+            "RSI en 4h acercándose a zona de sobrecompra (67)",
+            "Funding rate elevado indica exceso de longs",
+            "Volumen decreciente en el rally — falta convicción"
+        ],
+        "market_context": "Mercado en régimen de acumulación con dominancia BTC en 42%. Capital rotando hacia altcoins de mediana capitalización.",
+        "key_level": "$83,000 — soporte crítico a vigilar",
+        "generated_at": "2026-04-20T10:00:00"
+    }
+
+---
+
+## Briefing
+
+### GET /briefing/{context}
+
+Briefing de mercado generado con IA según el contexto.
+<br><br>
+Contextos disponibles:<br>
+    - morning → qué pasó mientras dormías, cómo arrancar el día<br>
+    - evening → resumen del día, qué vigilar esta noche<br>
+    - weekly  → resumen semanal y outlook próxima semana<br>
+    - alert   → condiciones urgentes ahora mismo<br>
+
+Se cachea automáticamente según el contexto.
+
+| Contexto | Cuándo usarlo | 
+|------|------------|
+| morning | Al abrir la app por la mañana |
+| evening | Resumen al final del día |
+| weekly | Resumen los lunes o domingos |
+| alert | Cuando hay movimientos bruscos |
+
+    {
+        "headline": "Bitcoin consolida mientras altcoins lideran el mercado",
+        "summary": "El mercado cripto amanece en modo acumulación con el top 50 mostrando 72% de activos en verde. Bitcoin mantiene $84,000 como soporte mientras Solana y Ethereum lideran las ganancias del día con +5.2% y +3.8% respectivamente.",
+        "key_events": [
+            "SOL rompe resistencia clave de $145 con volumen 180% sobre promedio",
+            "BTC dominancia cae a 42.1% — señal de rotación hacia altcoins",
+            "Funding rates normalizados tras liquidaciones de la semana pasada"
+        ],
+        "watch_list": [
+            "BTC $83,000 — soporte crítico a vigilar",
+            "ETH $2,400 — resistencia a superar para continuar rally"
+        ],
+        "sentiment": "bullish",
+        "confidence": 0.72,
+        "context": "morning",
+        "generated_at": "2026-04-20T07:00:00",
+        "from_cache": false
     }
 
 ---
@@ -708,6 +822,121 @@ Interpretacion del funding rate
 
 ---
 
+## Alerts
+
+### GET /alerts/triggered
+
+Devuelve todas las alertas activas detectadas automáticamente.
+No requiere configuración — la API detecta condiciones notables sola.
+hours: últimas N horas (1-168)
+severity: low | medium | high | critical
+symbol: filtrar por activo
+
+Filtro de Horas:
+
+    GET /alerts/triggered?hours=6
+    GET /alerts/triggered?hours=48
+    GET /alerts/triggered?hours=168
+
+Filtro de severidad
+
+    GET /alerts/triggered?severity=critical
+    GET /alerts/triggered?severity=high
+    GET /alerts/triggered?severity=medium
+    GET /alerts/triggered?severity=low
+
+Filtro de simbolo
+
+    GET /alerts/triggered?symbol=BTC
+    GET /alerts/triggered?symbol=ETH
+    GET /alerts/triggered?symbol=SOL
+
+Combinados
+
+    GET /alerts/triggered?hours=12&severity=high
+    GET /alerts/triggered?hours=24&severity=critical&symbol=BTC
+    GET /alerts/triggered?hours=6&symbol=ETH
+
+Respuesta
+
+    {
+        "total": 3,
+        "hours": 24,
+        "severity": null,
+        "alerts": [
+            {
+                "id": 47,
+                "symbol": "XRP",
+                "alert_type": "volume_spike",
+                "severity": "critical",
+                "title": "XRP spike de volumen +340%",
+                "message": "Volumen inusual detectado en XRP: +340% sobre el promedio. Posible movimiento institucional.",
+                "data": {
+                    "volume_change_pct": 340.2,
+                    "current_volume": 8500000000
+                },
+                "triggered_at": "2026-04-20T14:28:00"
+            },
+            {
+                "id": 46,
+                "symbol": "BTC",
+                "alert_type": "rsi_overbought",
+                "severity": "high",
+                "title": "BTC RSI en sobrecompra (78.3)",
+                "message": "RSI de BTC alcanzó 78.3, zona de sobrecompra. Posible corrección próxima.",
+                "data": { "rsi": 78.3 },
+                "triggered_at": "2026-04-20T12:00:00"
+            },
+            {
+                "id": 45,
+                "symbol": "ETH",
+                "alert_type": "signal_change",
+                "severity": "high",
+                "title": "ETH cambió señal: HOLD → BUY",
+                "message": "La señal de ETH cambió de HOLD a BUY con confianza del 74%.",
+                "data": {
+                    "previous": "HOLD",
+                    "current": "BUY",
+                    "confidence": 0.74
+                },
+                "triggered_at": "2026-04-20T10:30:00"
+            }
+        ]
+    }
+
+### GET /alerts/scan/{symbol}
+
+Escanea un activo específico ahora mismo y devuelve alertas detectadas.
+Guarda las nuevas en DB automáticamente.
+
+    {
+        "symbol": "XRP",
+        "scanned_at": "2026-04-20T14:30:00",
+        "alerts_found": 2,
+        "alerts": [
+            {
+                "symbol": "XRP",
+                "alert_type": "volume_spike",
+                "severity": "critical",
+                "title": "XRP spike de volumen +340%",
+                "message": "Volumen inusual detectado en XRP...",
+                "data": { "volume_change_pct": 340.2 }
+            },
+            {
+                "symbol": "XRP",
+                "alert_type": "rsi_overbought",
+                "severity": "medium",
+                "title": "XRP RSI en sobrecompra (71.2)",
+                "message": "RSI de XRP alcanzó 71.2...",
+                "data": { "rsi": 71.2 }
+            }
+        ]
+    }
+
+---
+
+
+
 ## Códigos de respuesta
 
 | Código | Significado |
@@ -720,14 +949,30 @@ Interpretacion del funding rate
 
 ## Flujo recomendado
 
-1. GET /altcoin-season  
-2. GET /market/top50  
-3. GET /ranking  
-4. GET /trending  
-5. GET /signal/{symbol}  
-6. GET /analysis/{symbol}  
-7. GET /whales  
-8. GET /news  
+Al abrir la plataforma:
+1. GET /briefing/morning          
+2. GET /alerts/triggered?hours=8  
+3. GET /altcoin-season  
+4. GET /market/top50 
+
+En La plataforma
+
+5. GET /ranking  
+6. GET /trending  
+7. GET /signal/{symbol}  
+8. GET /analysis/{symbol}  
+9. GET /whales  
+10. GET /news  
+
+Para análisis avanzado
+
+11. POST /ai/analyze               
+12. POST /ai/compare 
+
+Cuando hay movimiento brusco
+
+13. GET /briefing/alert           
+14. GET /alerts/triggered?severity=critical 
 
 ---
 

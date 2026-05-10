@@ -8,6 +8,7 @@ from routers import (
 )
 from tasks.scheduler import start_scheduler, task_market_data, task_indicators_and_signals, task_whale_activity
 from routers import ohlcv
+from routers import narrative, alerts, briefing
 
 app = FastAPI(
     title="CryptoLens Intelligence API",
@@ -53,6 +54,10 @@ app.include_router(news.router,            prefix="/news",            tags=["Con
 
 # AI
 app.include_router(ai.router,              prefix="/ai",              tags=["AI"])
+
+app.include_router(narrative.router,  prefix="/narrative",  tags=["AI & Narrative"])
+app.include_router(briefing.router,   prefix="/briefing",   tags=["AI & Narrative"])
+app.include_router(alerts.router,     prefix="/alerts",     tags=["Alerts"])
 
 @app.on_event("startup")
 async def startup_event():

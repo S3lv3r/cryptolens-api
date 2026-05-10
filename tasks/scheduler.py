@@ -189,11 +189,34 @@ def task_trending():
     except Exception as e:
         print(f"Error en task_trending: {e}")
 
+def task_scan_alerts():
+    from database import SessionLocal
+    from models import Crypto
+    from services.alert_service import detect_alerts_for_symbol
+
+    db = SessionLocal()
+    cryptos = db.query(Crypto).all()
+    db.close()
+
+    total_alerts = 0
+    for crypto in cryptos:
+        try:
+            alerts = detect_alerts_for_symbol(crypto.symbol)
+            total_alerts += len(alerts)
+        except Exception as e:
+            print(f" Alert scan {crypto.symbol}: {e}")
+            continue
+
+    print(f"Scan completado: {total_alerts} alertas detectadas en {len(cryptos)} activos")
+
+
+
 def start_scheduler():
     scheduler = BackgroundScheduler()
     scheduler.add_job(task_market_data,            "interval", minutes=5,   id="market")
     scheduler.add_job(task_indicators_and_signals, "interval", minutes=30,  id="indicators")
     scheduler.add_job(task_whale_activity,         "interval", hours=1,     id="whales")
     scheduler.add_job(task_trending,               "interval", minutes=30,  id="trending")
+    scheduler.add_job(task_scan_alerts, "interval", minutes=15, id="alerts")
     scheduler.start()
     print("Scheduler iniciado")

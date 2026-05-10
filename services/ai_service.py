@@ -172,3 +172,72 @@ Pregunta del usuario: {query}"""
 
     except Exception as e:
         return {"error": str(e)}
+
+def compare_assets(symbols: list, query: str) -> dict:
+    """
+    Compara múltiples activos usando IA con datos reales de cada uno.
+    """
+    if not GROQ_API_KEY:
+        return {"error": "GROQ_API_KEY no configurada"}
+
+    if len(symbols) < 2 or len(symbols) > 4:
+        return {"error": "Envía entre 2 y 4 símbolos para comparar"}
+
+    # Construir contexto de cada activo
+    contexts = {}
+    for symbol in symbols:
+        contexts[symbol.upper()] = build_market_context(symbol.upper())
+
+    combined = "\n\n".join(
+        f"=== {sym} ===\n{ctx}"
+        for sym, ctx in contexts.items()
+    )
+
+    system_prompt = """Eres un analista financiero experto en criptomonedas.
+Tu función es comparar activos usando datos técnicos reales y explicar las diferencias de forma clara.
+Reglas:
+- Sé específico con números
+- Menciona cuál tiene mejor setup técnico y por qué
+- Indica riesgos de cada uno
+- No uses frases genéricas
+- No recomiendes comprar ni vender — analiza condiciones de mercado
+- Responde en español"""
+
+    user_prompt = f"""Compara estos activos con sus datos actuales:
+
+{combined}
+
+Pregunta: {query}"""
+
+    try:
+        r = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type":  "application/json"
+            },
+            json={
+                "model":       GROQ_MODEL,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": user_prompt}
+                ],
+                "max_tokens":  1200,
+                "temperature": 0.3
+            },
+            timeout=45
+        )
+        r.raise_for_status()
+        content = r.json()["choices"][0]["message"]["content"]
+        tokens  = r.json()["usage"]["total_tokens"]
+
+        return {
+            "symbols":     [s.upper() for s in symbols],
+            "query":       query,
+            "comparison":  content,
+            "tokens_used": tokens,
+            "model":       GROQ_MODEL
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
