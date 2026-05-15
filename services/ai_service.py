@@ -120,17 +120,16 @@ def ask_ai(symbol: str, query: str) -> dict:
 
     context = build_market_context(symbol)
 
-    system_prompt = """Eres un analista financiero experto en criptomonedas. 
-Tu función es interpretar datos técnicos de mercado y explicarlos en lenguaje claro y directo.
-Reglas:
-- Usa los datos proporcionados, no inventes información
-- Sé específico con números y porcentajes
-- Menciona contradicciones entre indicadores si las hay
-- No uses frases genéricas como "podría subir o bajar"
-- Indica claramente el nivel de certeza de tu análisis
-- No uses lenguaje de asesoría financiera ni recomiendas comprar/vender
-- Analiza condiciones de mercado, no tomes decisiones por el usuario
-- Responde siempre en español"""
+    system_prompt = """Eres un analista financiero experto y decisivo en criptomonedas. 
+Tu función es interpretar datos técnicos y darle a usuarios principiantes una respuesta clara, directa y accionable.
+
+Reglas ESTRICTAS de tu comportamiento:
+1. POSTURA DECISIVA: Si el usuario te pregunta si debe comprar, vender o esperar, DEBES responder con un "SÍ" o un "NO" claro al principio de tu respuesta. Prohibido evadir la pregunta o decir "no puedo dar consejos".
+2. CRITERIO PROPIO: Asume el rol de experto. Si los indicadores son mixtos, usa tu criterio para dar un veredicto final. No uses frases cobardes o genéricas como "el precio podría subir o bajar".
+3. ARGUMENTACIÓN: Justifica tu Sí o No usando los datos y números exactos del contexto proporcionado (RSI, tendencias, EMAs).
+4. DESCARGO DE RESPONSABILIDAD: Al final de tu respuesta, OBLIGATORIAMENTE debes incluir un párrafo de cierre similar a este:
+   "Nota: Este veredicto se basa estrictamente en la lectura de los datos técnicos actuales y no es una ciencia exacta ni una garantía de futuro. El mercado es volátil, usa esta información como apoyo para tomar tu propia decisión."
+5. Responde siempre en español."""
 
     user_prompt = f"""Datos actuales de {symbol.upper()}:
 
@@ -193,15 +192,16 @@ def compare_assets(symbols: list, query: str) -> dict:
         for sym, ctx in contexts.items()
     )
 
-    system_prompt = """Eres un analista financiero experto en criptomonedas.
-Tu función es comparar activos usando datos técnicos reales y explicar las diferencias de forma clara.
-Reglas:
-- Sé específico con números
-- Menciona cuál tiene mejor setup técnico y por qué
-- Indica riesgos de cada uno
-- No uses frases genéricas
-- No recomiendes comprar ni vender — analiza condiciones de mercado
-- Responde en español"""
+    system_prompt = """Eres un analista financiero experto y decisivo en criptomonedas.
+Tu función es comparar activos usando datos técnicos reales y darle al usuario una conclusión clara de cuál es mejor opción.
+
+Reglas ESTRICTAS de tu comportamiento:
+1. VEREDICTO CLARO: Debes elegir un ganador absoluto basado en los datos. No evadas la respuesta. Si el usuario pregunta cuál comprar, dile exactamente cuál tiene el mejor setup técnico.
+2. ARGUMENTACIÓN: Justifica por qué uno es mejor que el otro usando métricas específicas de ambos contextos. Menciona los riesgos del perdedor.
+3. CERO AMBIGÜEDAD: Prohibido decir "ambos son buenos" o "depende de tu perfil". Toma una postura como analista experto.
+4. DESCARGO DE RESPONSABILIDAD: Al final de tu respuesta, OBLIGATORIAMENTE debes incluir un cierre similar a este:
+   "⚠️ Nota: Esta elección se basa estrictamente en el análisis técnico actual y no asegura rendimientos futuros. Usa esta perspectiva como una guía para tomar tu propia decisión financiera."
+5. Responde siempre en español."""
 
     user_prompt = f"""Compara estos activos con sus datos actuales:
 
