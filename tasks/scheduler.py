@@ -17,6 +17,7 @@ from services.technical_service import (
 )
 from services.signal_service import generate_signal
 from services.whale_service import fetch_whale_events_batch, interpret_whale_transaction
+from services.binance_service import fetch_klines
 
 def task_market_data():
     db = SessionLocal()
@@ -62,16 +63,24 @@ def task_indicators_and_signals():
     for crypto_id, symbol, cmc_id in crypto_list:
         db = SessionLocal()
         try:
-            print(f"Historial de {symbol}...")
+            print(f"Obteniendo historial de {symbol}...")
 
-            prices = fetch_price_history(cmc_id, days=60)
+            klines = fetch_klines(symbol, timeframe="1d", limit=250)
 
-            ohlcv = fetch_ohlcv_history(cmc_id, days=60)
+            if klines and len(klines) >= 200:
+                print(f"{symbol}: Usando datos de Binance ({len(klines)} velas)")
+                prices = [k["close"] for k in klines]
+                ohlcv = klines
+            else:
+                print(f"{symbol}: Binance falló/datos insuficientes. Usando CMC...")
+                prices = fetch_price_history(cmc_id, days=250)
+                ohlcv = fetch_ohlcv_history(cmc_id, days=250)
 
             if len(prices) < 26 or len(ohlcv) < 14:
-                print(f"{symbol}: datos insuficientes")
+                print(f"{symbol}: Datos insuficientes en ambas fuentes. Saltando...")
                 db.close()
                 continue
+            
 
             macd_data = calculate_macd(prices)
             ema_9     = calculate_ema(prices, 9)
@@ -79,6 +88,7 @@ def task_indicators_and_signals():
             ema_50    = calculate_ema(prices, 50) if len(prices) >= 50 else 0
             rsi       = calculate_rsi(prices)
             lsma_25   = calculate_lsma(prices, 25)
+            
             lsma_200  = calculate_lsma(prices, 200) if len(prices) >= 200 else 0
 
             bb        = calculate_bollinger_bands(prices)
@@ -121,6 +131,7 @@ def task_indicators_and_signals():
                 bb_pct_b   = bb["pct_b"],
                 price      = latest_price
             )
+            
             signal = Signal(
                 crypto_id=crypto_id,
                 action=signal_data["action"],
@@ -137,10 +148,10 @@ def task_indicators_and_signals():
             )
             db.add(signal)
             db.commit()
-            print(f"{symbol}: {signal_data['action']} | RSI:{rsi} ADX:{adx_data['adx']} BB%:{bb['pct_b']}")
+            print(f"{symbol}: {signal_data['action']} | RSI:{rsi} ADX:{adx_data['adx']} LSMA200:{lsma_200}")
 
         except Exception as e:
-            print(f"{symbol}: {e}")
+            print(f"{symbol}: Error procesando indicadores: {e}")
             db.rollback()
         finally:
             db.close()
