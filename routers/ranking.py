@@ -7,6 +7,12 @@ from typing import List
 
 router = APIRouter()
 
+ACTION_LABELS = {
+    "BUY": "Comprar",
+    "SELL": "Vender",
+    "HOLD": "Esperar"
+}
+
 @router.get("/", response_model=List[RankingItem])
 def get_ranking(db: Session = Depends(get_db)):
 
@@ -34,7 +40,8 @@ def get_ranking(db: Session = Depends(get_db)):
                 price_usd=market.price_usd,
                 market_cap=market.market_cap,
                 change_24h=market.change_24h,
-                signal=signal.action if signal else None
+                signal=signal.action if signal else None,
+                signal_label=ACTION_LABELS.get(signal.action, signal.action) if signal else None
             ))
 
     ranking.sort(key=lambda x: x.market_cap, reverse=True)

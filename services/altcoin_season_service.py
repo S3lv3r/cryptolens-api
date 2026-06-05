@@ -1,14 +1,4 @@
-import requests
-from config import COINMARKETCAP_API_KEY, COINMARKETCAP_BASE_URL
-
-def get_headers():
-    return {"X-CMC_PRO_API_KEY": COINMARKETCAP_API_KEY, "Accept": "application/json"}
-
-def fetch_global_metrics() -> dict:
-    url = f"{COINMARKETCAP_BASE_URL}/global-metrics/quotes/latest"
-    response = requests.get(url, headers=get_headers(), timeout=10)
-    response.raise_for_status()
-    return response.json()["data"]
+from services.market_service import fetch_global_metrics
 
 def calculate_altcoin_season_index(top20_data: list) -> dict:
     metrics = fetch_global_metrics()
@@ -30,19 +20,23 @@ def calculate_altcoin_season_index(top20_data: list) -> dict:
 
     if btc_dominance > 55 and outperform_pct < 25:
         season = "Bitcoin Season"
+        season_label = "Temporada de Bitcoin"
         description = "El capital se concentra en Bitcoin. Las altcoins están rezagadas."
         score = round(outperform_pct)
     elif outperform_pct >= 75 and btc_dominance < 45:
         season = "Altcoin Season"
+        season_label = "Temporada de altcoins"
         description = "Las altcoins están superando a Bitcoin. El capital fluye hacia el mercado alternativo."
         score = round(outperform_pct)
     else:
         season = "Zona Neutral"
+        season_label = "Zona neutral"
         description = "Mercado indeciso. Mezcla de fuerza entre Bitcoin y altcoins."
         score = round(outperform_pct)
 
     return {
         "season": season,
+        "season_label": season_label,
         "score": score,
         "description": description,
         "btc_dominance": round(btc_dominance, 2),
@@ -51,5 +45,6 @@ def calculate_altcoin_season_index(top20_data: list) -> dict:
         "total_altcoins_analyzed": total_altcoins,
         "btc_7d_change": round(btc_7d, 2),
         "total_market_cap_usd": total_market_cap,
-        "total_volume_24h_usd": total_volume_24h
+        "total_volume_24h_usd": total_volume_24h,
+        "_source": metrics.get("_source", "coinmarketcap")
     }

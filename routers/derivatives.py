@@ -12,7 +12,7 @@ router = APIRouter()
 def get_derivatives(symbol: str):
     """
     Datos de mercado de derivados desde Binance Futures.
-    Incluye funding rate, open interest, ratio long/short y order book.
+    Incluye tasa de funding, interés abierto, ratio largo/corto y libro de órdenes.
     """
     return {
         "symbol":          symbol.upper(),

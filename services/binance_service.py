@@ -125,6 +125,7 @@ def fetch_order_book_depth(symbol: str, limit: int = 20) -> dict:
 
         total_bid_volume = sum(q for _, q in bids)
         total_ask_volume = sum(q for _, q in asks)
+        pressure = "buy" if total_bid_volume > total_ask_volume else "sell"
 
         return {
             "symbol":           symbol,
@@ -132,7 +133,8 @@ def fetch_order_book_depth(symbol: str, limit: int = 20) -> dict:
             "best_ask":         asks[0][0] if asks else None,
             "bid_volume":       round(total_bid_volume, 4),
             "ask_volume":       round(total_ask_volume, 4),
-            "pressure":         "buy" if total_bid_volume > total_ask_volume else "sell",
+            "pressure":         pressure,
+            "pressure_label":   "Compra" if pressure == "buy" else "Venta",
             "top_bids":         bids[:5],
             "top_asks":         asks[:5]
         }

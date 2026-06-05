@@ -4,6 +4,12 @@ from services.briefing_service import generate_briefing
 router = APIRouter()
 
 VALID_CONTEXTS = ["morning", "evening", "weekly", "alert"]
+CONTEXT_HELP = {
+    "morning": "morning (matutino)",
+    "evening": "evening (vespertino)",
+    "weekly": "weekly (semanal)",
+    "alert": "alert (alerta)"
+}
 
 @router.get("/{context}")
 def get_briefing(context: str):
@@ -21,7 +27,7 @@ def get_briefing(context: str):
     if context not in VALID_CONTEXTS:
         raise HTTPException(
             status_code=400,
-            detail=f"Contexto inválido. Usa: {', '.join(VALID_CONTEXTS)}"
+            detail=f"Contexto inválido. Usa: {', '.join(CONTEXT_HELP[c] for c in VALID_CONTEXTS)}"
         )
 
     result = generate_briefing(context)

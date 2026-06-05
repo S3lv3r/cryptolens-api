@@ -8,6 +8,15 @@ from services.market_structure_service import detect_market_structure
 from database import SessionLocal
 from models import Crypto, Signal, MarketData, TechnicalIndicator
 
+ACTION_LABELS = {
+    "BUY": "Comprar",
+    "SELL": "Vender",
+    "HOLD": "Esperar"
+}
+
+def _action_label(action: str | None) -> str | None:
+    return ACTION_LABELS.get(action, action) if action else None
+
 def build_market_context(symbol: str) -> str:
 
     db = SessionLocal()
@@ -30,7 +39,7 @@ def build_market_context(symbol: str) -> str:
                 f"Cambio 24h: {market.change_24h:.2f}% | "
                 f"Cambio 7d: {market.change_7d:.2f}% | "
                 f"Volumen 24h: ${market.volume_24h:,.0f} | "
-                f"Market Cap: ${market.market_cap:,.0f}"
+                f"Capitalización de mercado: ${market.market_cap:,.0f}"
             )
 
         signal = (
@@ -41,16 +50,16 @@ def build_market_context(symbol: str) -> str:
         )
         if signal:
             context_parts.append(
-                f"SEÑAL ACTUAL: {signal.action} | "
+                f"SEÑAL ACTUAL: {_action_label(signal.action)} | "
                 f"Confianza: {signal.confidence:.0%} | "
                 f"Razones: {signal.explanation}"
             )
             if signal.short_term_notes:
-                context_parts.append(f"CORTO PLAZO (1-7d): {signal.short_term_action} — {signal.short_term_notes}")
+                context_parts.append(f"CORTO PLAZO (1-7d): {_action_label(signal.short_term_action)} - {signal.short_term_notes}")
             if signal.medium_term_notes:
-                context_parts.append(f"MEDIANO PLAZO (1-3m): {signal.medium_term_action} — {signal.medium_term_notes}")
+                context_parts.append(f"MEDIANO PLAZO (1-3m): {_action_label(signal.medium_term_action)} - {signal.medium_term_notes}")
             if signal.long_term_notes:
-                context_parts.append(f"LARGO PLAZO (+6m): {signal.long_term_action} — {signal.long_term_notes}")
+                context_parts.append(f"LARGO PLAZO (+6m): {_action_label(signal.long_term_action)} - {signal.long_term_notes}")
 
         ind = (
             db.query(TechnicalIndicator)
@@ -73,14 +82,14 @@ def build_market_context(symbol: str) -> str:
         analyses  = {tf: analyze_timeframe(symbol.upper(), tf) for tf in ["1h", "4h", "1d"]}
         consensus = calculate_consensus(analyses)
         context_parts.append(
-            f"CONSENSO MULTI-TIMEFRAME: {consensus['bias'].upper()} | "
+            f"CONSENSO MULTI-TIMEFRAME: {consensus.get('bias_label', consensus['bias'])} | "
             f"Alineación: {consensus['alignment_score']:.0%} | "
             f"Confianza: {consensus['confidence']:.0%}"
         )
         for tf, data in analyses.items():
             if data:
                 context_parts.append(
-                    f"  {tf}: {data['trend_direction']} | RSI={data['rsi']} | ADX={data['adx']}"
+                    f"  {tf}: {data.get('trend_direction_label', data['trend_direction'])} | RSI={data['rsi']} | ADX={data['adx']}"
                 )
     except Exception as e:
         context_parts.append(f"Multi-timeframe no disponible: {e}")
@@ -89,7 +98,7 @@ def build_market_context(symbol: str) -> str:
         vol = analyze_volatility(symbol.upper(), "1d")
         if "error" not in vol:
             context_parts.append(
-                f"VOLATILIDAD: {vol['regime']} | "
+                f"VOLATILIDAD: {vol.get('regime_label', vol['regime'])} | "
                 f"ATR={vol['atr']} ({vol['atr_pct']}%) | "
                 f"Vol histórica={vol['historical_volatility']}% | "
                 f"Percentil={vol['volatility_percentile']}%"
@@ -101,8 +110,8 @@ def build_market_context(symbol: str) -> str:
         struct = detect_market_structure(symbol.upper(), "1d")
         if "error" not in struct:
             context_parts.append(
-                f"ESTRUCTURA: {struct['market_structure']} | "
-                f"Fase: {struct['trend_phase']} | "
+                f"ESTRUCTURA: {struct.get('market_structure_label', struct['market_structure'])} | "
+                f"Fase: {struct.get('trend_phase_label', struct['trend_phase'])} | "
                 f"Soporte: {struct['current_support']} | "
                 f"Resistencia: {struct['current_resistance']} | "
                 f"BOS: {struct['last_bos']['detected']} | "

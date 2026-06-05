@@ -6,6 +6,15 @@ from sqlalchemy import func
 
 router = APIRouter()
 
+ACTION_LABELS = {
+    "BUY": "Comprar",
+    "SELL": "Vender",
+    "HOLD": "Esperar"
+}
+
+def action_label(action: str | None) -> str | None:
+    return ACTION_LABELS.get(action, action) if action else None
+
 @router.get("/{symbol}")
 def get_signal(symbol: str, db: Session = Depends(get_db)):
     crypto = db.query(Crypto).filter(Crypto.symbol == symbol.upper()).first()
@@ -48,6 +57,7 @@ def get_signal(symbol: str, db: Session = Depends(get_db)):
 
         "recommendation": {
             "action":      signal.action,
+            "action_label": action_label(signal.action),
             "confidence":  signal.confidence,
             "explanation": signal.explanation,
             "whale_alert": signal.whale_activity
@@ -57,17 +67,20 @@ def get_signal(symbol: str, db: Session = Depends(get_db)):
             "short_term": {
                 "label":  "Corto plazo (1-7 días)",
                 "action": signal.short_term_action,
+                "action_label": action_label(signal.short_term_action),
                 "risk":   signal.short_term_risk,
                 "notes":  signal.short_term_notes
             },
             "medium_term": {
                 "label":  "Mediano plazo (1-3 meses)",
                 "action": signal.medium_term_action,
+                "action_label": action_label(signal.medium_term_action),
                 "notes":  signal.medium_term_notes
             },
             "long_term": {
                 "label":  "Largo plazo (+6 meses)",
                 "action": signal.long_term_action,
+                "action_label": action_label(signal.long_term_action),
                 "notes":  signal.long_term_notes
             }
         },

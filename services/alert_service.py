@@ -5,6 +5,38 @@ from services.market_structure_service import detect_market_structure
 
 SEVERITY_LEVELS = ["low", "medium", "high", "critical"]
 
+ACTION_LABELS = {
+    "BUY": "Comprar",
+    "SELL": "Vender",
+    "HOLD": "Esperar"
+}
+
+SEVERITY_LABELS = {
+    "low": "Baja",
+    "medium": "Media",
+    "high": "Alta",
+    "critical": "Crítica"
+}
+
+ALERT_TYPE_LABELS = {
+    "signal_change": "Cambio de señal",
+    "rsi_overbought": "RSI en sobrecompra",
+    "rsi_oversold": "RSI en sobreventa",
+    "volume_spike": "Aumento inusual de volumen",
+    "price_at_support": "Precio en soporte",
+    "price_at_resistance": "Precio en resistencia",
+    "break_of_structure": "Ruptura de estructura",
+    "extreme_price_move": "Movimiento extremo de precio"
+}
+
+DIRECTION_LABELS = {
+    "bullish": "alcista",
+    "bearish": "bajista"
+}
+
+def _action_label(action: str | None) -> str | None:
+    return ACTION_LABELS.get(action, action) if action else None
+
 def detect_alerts_for_symbol(symbol: str) -> list:
     """
     Detecta condiciones notables para un activo y genera alertas.
@@ -51,15 +83,21 @@ def detect_alerts_for_symbol(symbol: str) -> list:
         price = market.price_usd
 
         if prev_signal and signal.action != prev_signal.action:
+            previous_label = _action_label(prev_signal.action)
+            current_label = _action_label(signal.action)
             alerts.append({
                 "symbol":     symbol,
                 "alert_type": "signal_change",
+                "alert_type_label": ALERT_TYPE_LABELS["signal_change"],
                 "severity":   "high",
-                "title":      f"{symbol} cambió señal: {prev_signal.action} → {signal.action}",
-                "message":    f"La señal de {symbol} cambió de {prev_signal.action} a {signal.action} con confianza del {signal.confidence:.0%}. {signal.explanation}",
+                "severity_label": SEVERITY_LABELS["high"],
+                "title":      f"{symbol} cambió señal: {previous_label} -> {current_label}",
+                "message":    f"La señal de {symbol} cambió de {previous_label} a {current_label} con confianza del {signal.confidence:.0%}. {signal.explanation}",
                 "data": {
                     "previous": prev_signal.action,
                     "current":  signal.action,
+                    "previous_label": previous_label,
+                    "current_label": current_label,
                     "confidence": signal.confidence
                 }
             })
@@ -69,7 +107,9 @@ def detect_alerts_for_symbol(symbol: str) -> list:
                 alerts.append({
                     "symbol":     symbol,
                     "alert_type": "rsi_overbought",
+                    "alert_type_label": ALERT_TYPE_LABELS["rsi_overbought"],
                     "severity":   "high" if ind.rsi >= 80 else "medium",
+                    "severity_label": SEVERITY_LABELS["high" if ind.rsi >= 80 else "medium"],
                     "title":      f"{symbol} RSI en sobrecompra ({ind.rsi:.1f})",
                     "message":    f"RSI de {symbol} alcanzó {ind.rsi:.1f}, zona de sobrecompra. Posible corrección próxima.",
                     "data":       {"rsi": ind.rsi}
@@ -78,7 +118,9 @@ def detect_alerts_for_symbol(symbol: str) -> list:
                 alerts.append({
                     "symbol":     symbol,
                     "alert_type": "rsi_oversold",
+                    "alert_type_label": ALERT_TYPE_LABELS["rsi_oversold"],
                     "severity":   "high" if ind.rsi <= 20 else "medium",
+                    "severity_label": SEVERITY_LABELS["high" if ind.rsi <= 20 else "medium"],
                     "title":      f"{symbol} RSI en sobreventa ({ind.rsi:.1f})",
                     "message":    f"RSI de {symbol} en {ind.rsi:.1f}, zona de sobreventa extrema. Posible rebote.",
                     "data":       {"rsi": ind.rsi}
@@ -100,7 +142,9 @@ def detect_alerts_for_symbol(symbol: str) -> list:
                         alerts.append({
                             "symbol":     symbol,
                             "alert_type": "volume_spike",
+                            "alert_type_label": ALERT_TYPE_LABELS["volume_spike"],
                             "severity":   "critical" if vol_change > 300 else "high",
+                            "severity_label": SEVERITY_LABELS["critical" if vol_change > 300 else "high"],
                             "title":      f"{symbol} spike de volumen +{vol_change:.0f}%",
                             "message":    f"Volumen inusual detectado en {symbol}: +{vol_change:.0f}% sobre el promedio. Posible movimiento institucional.",
                             "data":       {"volume_change_pct": round(vol_change, 2), "current_volume": market.volume_24h}
@@ -116,7 +160,9 @@ def detect_alerts_for_symbol(symbol: str) -> list:
                     alerts.append({
                         "symbol":     symbol,
                         "alert_type": "price_at_support",
+                        "alert_type_label": ALERT_TYPE_LABELS["price_at_support"],
                         "severity":   "medium",
+                        "severity_label": SEVERITY_LABELS["medium"],
                         "title":      f"{symbol} tocando soporte en ${support:,.4f}",
                         "message":    f"Precio de {symbol} (${price:,.4f}) está a menos del 2% del soporte clave en ${support:,.4f}.",
                         "data":       {"price": price, "support": support}
@@ -126,7 +172,9 @@ def detect_alerts_for_symbol(symbol: str) -> list:
                     alerts.append({
                         "symbol":     symbol,
                         "alert_type": "price_at_resistance",
+                        "alert_type_label": ALERT_TYPE_LABELS["price_at_resistance"],
                         "severity":   "medium",
+                        "severity_label": SEVERITY_LABELS["medium"],
                         "title":      f"{symbol} tocando resistencia en ${resistance:,.4f}",
                         "message":    f"Precio de {symbol} (${price:,.4f}) está a menos del 2% de la resistencia en ${resistance:,.4f}.",
                         "data":       {"price": price, "resistance": resistance}
@@ -134,13 +182,16 @@ def detect_alerts_for_symbol(symbol: str) -> list:
 
                 bos = structure.get("last_bos", {})
                 if bos.get("detected"):
+                    direction_label = DIRECTION_LABELS.get(bos["direction"], bos["direction"])
                     alerts.append({
                         "symbol":     symbol,
                         "alert_type": "break_of_structure",
+                        "alert_type_label": ALERT_TYPE_LABELS["break_of_structure"],
                         "severity":   "high",
-                        "title":      f"{symbol} Break of Structure {bos['direction']}",
-                        "message":    f"Se detectó un BOS {bos['direction']} en {symbol} en ${bos['price']:,.4f}. Posible cambio de tendencia.",
-                        "data":       bos
+                        "severity_label": SEVERITY_LABELS["high"],
+                        "title":      f"{symbol} ruptura de estructura {direction_label}",
+                        "message":    f"Se detectó un BOS {direction_label} en {symbol} en ${bos['price']:,.4f}. Posible cambio de tendencia.",
+                        "data":       {**bos, "direction_label": direction_label}
                     })
         except:
             pass
@@ -152,7 +203,9 @@ def detect_alerts_for_symbol(symbol: str) -> list:
                 alerts.append({
                     "symbol":     symbol,
                     "alert_type": "extreme_price_move",
+                    "alert_type_label": ALERT_TYPE_LABELS["extreme_price_move"],
                     "severity":   severity,
+                    "severity_label": SEVERITY_LABELS[severity],
                     "title":      f"{symbol} {direction} extrema de {market.change_24h:.1f}% en 24h",
                     "message":    f"{symbol} registra una {direction} de {abs(market.change_24h):.1f}% en las últimas 24 horas.",
                     "data":       {"change_24h": market.change_24h, "price": price}
@@ -209,7 +262,9 @@ def get_all_triggered_alerts(hours: int = 24, severity: str = None) -> list:
                 "id":           a.id,
                 "symbol":       a.symbol,
                 "alert_type":   a.alert_type,
+                "alert_type_label": ALERT_TYPE_LABELS.get(a.alert_type, a.alert_type),
                 "severity":     a.severity,
+                "severity_label": SEVERITY_LABELS.get(a.severity, a.severity),
                 "title":        a.title,
                 "message":      a.message,
                 "data":         a.data,

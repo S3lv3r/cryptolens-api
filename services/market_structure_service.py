@@ -1,6 +1,31 @@
 import numpy as np
 from services.binance_service import fetch_klines
 
+DIRECTION_LABELS = {
+    "bullish": "Alcista",
+    "bearish": "Bajista"
+}
+
+CHOCH_TYPE_LABELS = {
+    "lower_high": "Máximo más bajo",
+    "higher_low": "Mínimo más alto"
+}
+
+STRUCTURE_LABELS = {
+    "uptrend": "Tendencia alcista",
+    "downtrend": "Tendencia bajista",
+    "transition": "Transición",
+    "ranging": "Rango lateral",
+    "undefined": "Indefinida"
+}
+
+TREND_PHASE_LABELS = {
+    "continuation": "Continuación",
+    "reversal": "Reversión",
+    "consolidation": "Consolidación",
+    "unknown": "Desconocida"
+}
+
 def find_swing_highs(highs: list, window: int = 3) -> list:
     swings = []
     for i in range(window, len(highs) - window):
@@ -32,9 +57,9 @@ def detect_bos(swing_highs: list, swing_lows: list, closes: list, volumes: list)
     volume_confirmed = current_volume > avg_volume * 1.2
 
     if current_close > last_high and volume_confirmed:
-        bos = {"detected": True, "price": last_high, "direction": "bullish"}
+        bos = {"detected": True, "price": last_high, "direction": "bullish", "direction_label": "Alcista"}
     elif current_close < last_low and volume_confirmed:
-        bos = {"detected": True, "price": last_low, "direction": "bearish"}
+        bos = {"detected": True, "price": last_low, "direction": "bearish", "direction_label": "Bajista"}
 
     return bos
 
@@ -50,14 +75,18 @@ def detect_choch(swing_highs: list, swing_lows: list) -> dict:
             "detected":  True,
             "price":     swing_highs[-1]["price"],
             "direction": "bearish",
-            "type":      "lower_high"
+            "direction_label": "Bajista",
+            "type":      "lower_high",
+            "type_label": "Máximo más bajo"
         }
     elif swing_lows[-1]["price"] > swing_lows[-2]["price"]:
         choch = {
             "detected":  True,
             "price":     swing_lows[-1]["price"],
             "direction": "bullish",
-            "type":      "higher_low"
+            "direction_label": "Alcista",
+            "type":      "higher_low",
+            "type_label": "Mínimo más alto"
         }
 
     return choch
@@ -118,7 +147,9 @@ def detect_market_structure(symbol: str, timeframe: str = "1d") -> dict:
         "timeframe":          timeframe,
         "current_price":      round(price, 6),
         "market_structure":   structure,
+        "market_structure_label": STRUCTURE_LABELS.get(structure, structure),
         "trend_phase":        trend_phase,
+        "trend_phase_label":  TREND_PHASE_LABELS.get(trend_phase, trend_phase),
         "swing_high":         swing_highs[-1]["price"] if swing_highs else None,
         "swing_low":          swing_lows[-1]["price"]  if swing_lows  else None,
         "current_resistance": round(resistance, 6) if resistance else None,

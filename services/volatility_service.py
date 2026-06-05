@@ -1,6 +1,12 @@
 import numpy as np
 from services.binance_service import fetch_klines
 
+VOLATILITY_REGIME_LABELS = {
+    "low_volatility": "Baja volatilidad",
+    "high_volatility": "Alta volatilidad",
+    "normal": "Normal"
+}
+
 def calculate_historical_volatility(closes: list, period: int = 30) -> float:
     if len(closes) < period + 1:
         return 0.0
@@ -71,5 +77,6 @@ def analyze_volatility(symbol: str, timeframe: str = "1d") -> dict:
         "historical_volatility":hist_vol,
         "volatility_percentile":vol_pct,
         "regime":               regime,
+        "regime_label":         VOLATILITY_REGIME_LABELS.get(regime, regime),
         "market_condition":     condition
     }

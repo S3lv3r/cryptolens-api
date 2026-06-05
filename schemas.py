@@ -71,3 +71,4 @@ class RankingItem(BaseModel):
     market_cap: float
     change_24h: float
     signal: Optional[str] = None
+    signal_label: Optional[str] = None

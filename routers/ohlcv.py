@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Crypto
 from services.market_service import get_headers, COINMARKETCAP_BASE_URL
+from services.fallback_service import get_ohlcv_history_from_db
 from datetime import datetime, timedelta
 import requests
 
@@ -26,40 +27,56 @@ def get_ohlcv(
     now        = datetime.utcnow()
     time_start = now - timedelta(days=days)
 
-    url = f"{COINMARKETCAP_BASE_URL}/cryptocurrency/ohlcv/historical"
-    r = requests.get(
-        url,
-        params={
-            "id":         crypto.cmc_id,
-            "time_start": time_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "time_end":   now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "interval":   "daily",
-            "convert":    "USD"
-        },
-        headers=get_headers(),
-        timeout=15
-    )
+    try:
+        url = f"{COINMARKETCAP_BASE_URL}/cryptocurrency/ohlcv/historical"
+        r = requests.get(
+            url,
+            params={
+                "id":         crypto.cmc_id,
+                "time_start": time_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "time_end":   now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "interval":   "daily",
+                "convert":    "USD"
+            },
+            headers=get_headers(),
+            timeout=15
+        )
+        r.raise_for_status()
+        quotes = r.json()["data"]["quotes"]
 
-    if not r.ok:
-        raise HTTPException(status_code=r.status_code, detail="Error al obtener datos de CMC")
-
-    quotes = r.json()["data"]["quotes"]
+        return {
+            "symbol": crypto.symbol,
+            "name":   crypto.name,
+            "days":   days,
+            "count":  len(quotes),
+            "data": [
+                {
+                    "timestamp":  q["time_open"],
+                    "open":       round(q["quote"]["USD"]["open"],       6),
+                    "high":       round(q["quote"]["USD"]["high"],       6),
+                    "low":        round(q["quote"]["USD"]["low"],        6),
+                    "close":      round(q["quote"]["USD"]["close"],      6),
+                    "volume":     round(q["quote"]["USD"]["volume"],     2),
+                    "market_cap": round(q["quote"]["USD"]["market_cap"], 2)
+                }
+                for q in quotes
+            ],
+            "_source": "coinmarketcap"
+        }
+    except Exception as exc:
+        fallback = get_ohlcv_history_from_db(symbol.upper(), days=days)
+        if not fallback:
+            raise HTTPException(
+                status_code=503,
+                detail=f"No se pudieron obtener datos OHLCV y no hay respaldo local disponible: {exc}"
+            )
 
     return {
         "symbol": crypto.symbol,
         "name":   crypto.name,
         "days":   days,
-        "count":  len(quotes),
-        "data": [
-            {
-                "timestamp":  q["time_open"],
-                "open":       round(q["quote"]["USD"]["open"],       6),
-                "high":       round(q["quote"]["USD"]["high"],       6),
-                "low":        round(q["quote"]["USD"]["low"],        6),
-                "close":      round(q["quote"]["USD"]["close"],      6),
-                "volume":     round(q["quote"]["USD"]["volume"],     2),
-                "market_cap": round(q["quote"]["USD"]["market_cap"], 2)
-            }
-            for q in quotes
-        ]
+        "count":  len(fallback),
+        "data":   fallback,
+        "_source": "base_de_datos_local",
+        "notice": "Datos OHLCV aproximados desde la base de datos local; open, high, low y close usan el precio registrado."
     }

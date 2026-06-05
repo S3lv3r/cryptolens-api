@@ -8,6 +8,20 @@ from services.cache_service import get_cached, set_cache
 from database import SessionLocal
 from models import Alert, Signal, Crypto, MarketData
 
+CONTEXT_LABELS = {
+    "morning": "Matutino",
+    "evening": "Vespertino",
+    "weekly": "Semanal",
+    "alert": "Alerta"
+}
+
+SENTIMENT_LABELS = {
+    "bullish": "Alcista",
+    "bearish": "Bajista",
+    "neutral": "Neutral",
+    "mixed": "Mixto"
+}
+
 def build_briefing_context(context_type: str) -> str:
     """Construye el contexto completo del mercado para el briefing."""
     parts = []
@@ -27,7 +41,7 @@ def build_briefing_context(context_type: str) -> str:
     try:
         regime = detect_market_regime()
         parts.append(
-            f"RÉGIMEN: {regime.get('regime', 'unknown').upper()} | "
+            f"RÉGIMEN: {regime.get('regime_label', regime.get('regime', 'desconocido'))} | "
             f"Confianza {regime.get('confidence', 0):.0%} | "
             f"{regime.get('description', '')}"
         )
@@ -52,8 +66,8 @@ def build_briefing_context(context_type: str) -> str:
             f"{c['symbol']} {c['quote']['USD']['percent_change_24h']:.1f}%"
             for c in losers
         )
-        parts.append(f"TOP GAINERS HOY: {g_str}")
-        parts.append(f"TOP LOSERS HOY: {l_str}")
+        parts.append(f"MAYORES SUBIDAS HOY: {g_str}")
+        parts.append(f"MAYORES CAÍDAS HOY: {l_str}")
     except:
         pass
 
@@ -93,6 +107,8 @@ def generate_briefing(context_type: str) -> dict:
     cached = get_cached(cache_key, ttl_seconds=ttl)
     if cached:
         cached["from_cache"] = True
+        cached.setdefault("context_label", CONTEXT_LABELS.get(cached.get("context", context_type), context_type))
+        cached.setdefault("sentiment_label", SENTIMENT_LABELS.get(cached.get("sentiment"), cached.get("sentiment")))
         return cached
 
     if not GROQ_API_KEY:
@@ -103,7 +119,7 @@ def generate_briefing(context_type: str) -> dict:
     tone_map = {
         "morning": "Es el briefing matutino. El usuario quiere saber qué pasó mientras dormía y cómo arrancar el día.",
         "evening": "Es el briefing vespertino. Resume lo más importante del día y qué vigilar esta noche.",
-        "weekly":  "Es el resumen semanal. Analiza la semana completa, tendencias y outlook para la próxima.",
+        "weekly":  "Es el resumen semanal. Analiza la semana completa, tendencias y perspectiva para la próxima.",
         "alert":   "Hay condiciones urgentes en el mercado. Sé directo y conciso sobre qué está pasando ahora mismo."
     }
     tone = tone_map.get(context_type, "Genera un resumen general del mercado.")
@@ -149,6 +165,8 @@ Genera un briefing ejecutivo. Responde ÚNICAMENTE con JSON válido, sin texto a
 
         result = json.loads(content)
         result["context"]      = context_type
+        result["context_label"] = CONTEXT_LABELS.get(context_type, context_type)
+        result["sentiment_label"] = SENTIMENT_LABELS.get(result.get("sentiment"), result.get("sentiment"))
         result["generated_at"] = datetime.utcnow().isoformat()
         result["from_cache"]   = False
 

@@ -3,6 +3,12 @@ import time
 from datetime import datetime, timedelta
 from config import COINMARKETCAP_API_KEY, COINMARKETCAP_BASE_URL
 
+TRANSACTION_TYPE_LABELS = {
+    "accumulation": "Acumulación",
+    "exchange_deposit": "Depósito en exchange",
+    "unusual_activity": "Actividad inusual"
+}
+
 def get_headers():
     return {
         "X-CMC_PRO_API_KEY": COINMARKETCAP_API_KEY,
@@ -74,6 +80,7 @@ def fetch_whale_events_batch() -> list:
             "from_wallet":      "volume_spike_detected",
             "to_wallet":        "volume_spike_detected",
             "transaction_type": tx_type,
+            "transaction_type_label": TRANSACTION_TYPE_LABELS.get(tx_type, tx_type),
             "interpretation":   interpretation,
             "timestamp":        datetime.utcnow().isoformat()
         })

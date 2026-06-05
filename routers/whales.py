@@ -7,6 +7,12 @@ from typing import Optional
 
 router = APIRouter()
 
+TRANSACTION_TYPE_LABELS = {
+    "accumulation": "Acumulación",
+    "exchange_deposit": "Depósito en exchange",
+    "unusual_activity": "Actividad inusual"
+}
+
 @router.get("/")
 def get_whales(
     symbol: Optional[str] = None,
@@ -15,10 +21,13 @@ def get_whales(
     db: Session = Depends(get_db)
 ):
     if source == "live":
-        events = fetch_whale_events_batch()
-        if symbol:
-            events = [e for e in events if e["symbol"] == symbol.upper()]
-        return events[:limit]
+        try:
+            events = fetch_whale_events_batch()
+            if symbol:
+                events = [e for e in events if e["symbol"] == symbol.upper()]
+            return events[:limit]
+        except Exception:
+            source = "db"
 
     query = (
         db.query(WhaleTransaction, Crypto)
@@ -40,6 +49,7 @@ def get_whales(
             "symbol":           crypto.symbol,
             "amount_usd":       tx.amount_usd,
             "transaction_type": tx.transaction_type,
+            "transaction_type_label": TRANSACTION_TYPE_LABELS.get(tx.transaction_type, tx.transaction_type),
             "interpretation":   tx.interpretation,
             "timestamp":        tx.timestamp
         }

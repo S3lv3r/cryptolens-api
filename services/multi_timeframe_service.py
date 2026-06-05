@@ -7,6 +7,26 @@ from services.technical_service import (
     calculate_bollinger_bands, calculate_adx_ohlcv
 )
 
+TREND_DIRECTION_LABELS = {
+    "strong_bullish": "Fuertemente alcista",
+    "bullish": "Alcista",
+    "neutral": "Neutral",
+    "bearish": "Bajista",
+    "strong_bearish": "Fuertemente bajista"
+}
+
+TREND_STRENGTH_LABELS = {
+    "strong": "Fuerte",
+    "moderate": "Moderada",
+    "weak": "Débil"
+}
+
+MARKET_CONDITION_LABELS = {
+    "high_volatility": "Alta volatilidad",
+    "low_volatility": "Baja volatilidad",
+    "normal": "Normal"
+}
+
 def calculate_atr(highs: list, lows: list, closes: list, period: int = 14) -> float:
     if len(closes) < period + 1:
         return 0.0
@@ -54,7 +74,13 @@ def determine_trend(ema_9, ema_21, ema_50, ema_200, price, macd, macd_signal) ->
         direction = "neutral"
         strength  = "weak"
 
-    return {"direction": direction, "strength": strength, "bull_ratio": round(ratio, 2)}
+    return {
+        "direction": direction,
+        "direction_label": TREND_DIRECTION_LABELS.get(direction, direction),
+        "strength": strength,
+        "strength_label": TREND_STRENGTH_LABELS.get(strength, strength),
+        "bull_ratio": round(ratio, 2)
+    }
 
 def determine_market_condition(rsi, bb_pct_b, atr, adx) -> str:
     if rsi > 75 and bb_pct_b > 0.9:
@@ -118,8 +144,11 @@ def analyze_timeframe(symbol: str, timeframe: str) -> dict | None:
         "bb_pct_b":        bb["pct_b"],
         "atr":             atr,
         "trend_direction": trend["direction"],
+        "trend_direction_label": trend["direction_label"],
         "trend_strength":  trend["strength"],
-        "market_condition":cond
+        "trend_strength_label": trend["strength_label"],
+        "market_condition":cond,
+        "market_condition_label": MARKET_CONDITION_LABELS.get(cond, cond)
     }
 
 def calculate_consensus(analyses: dict) -> dict:
@@ -128,7 +157,7 @@ def calculate_consensus(analyses: dict) -> dict:
     bullish si >= 60% alcistas, bearish si >= 60% bajistas.
     """
     if not analyses:
-        return {"bias": "neutral", "alignment_score": 0.0, "confidence": 0.0}
+        return {"bias": "neutral", "bias_label": "Neutral", "alignment_score": 0.0, "confidence": 0.0}
 
     bullish_tfs = []
     bearish_tfs = []
@@ -151,7 +180,7 @@ def calculate_consensus(analyses: dict) -> dict:
 
     total = len(bullish_tfs) + len(bearish_tfs) + len(neutral_tfs)
     if total == 0:
-        return {"bias": "neutral", "alignment_score": 0.0, "confidence": 0.0}
+        return {"bias": "neutral", "bias_label": "Neutral", "alignment_score": 0.0, "confidence": 0.0}
 
     bull_pct = len(bullish_tfs) / total
     bear_pct = len(bearish_tfs) / total
@@ -168,6 +197,7 @@ def calculate_consensus(analyses: dict) -> dict:
 
     return {
         "bias":            bias,
+        "bias_label":      TREND_DIRECTION_LABELS.get(bias, bias),
         "alignment_score": round(alignment, 3),
         "confidence":      round(bull_pct if bias == "bullish" else bear_pct if bias == "bearish" else 0.5, 3),
         "bullish_timeframes": bullish_tfs,

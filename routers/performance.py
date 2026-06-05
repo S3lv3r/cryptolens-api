@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Crypto
 from services.market_service import get_headers, COINMARKETCAP_BASE_URL
+from services.fallback_service import get_performance_from_db
 from datetime import datetime, timedelta
 import requests
 
@@ -47,8 +48,8 @@ def get_performance(symbol: str, db: Session = Depends(get_db)):
                 "open_timestamp": period["open_timestamp"],
                 "close_timestamp": period["close_timestamp"]
             }
-    except Exception as e:
-        result["periods"]["yesterday"] = {"error": str(e)}
+    except Exception:
+        result["periods"]["yesterday"] = {"error": "No se pudo consultar CoinMarketCap"}
 
     try:
         now        = datetime.utcnow()
@@ -93,8 +94,13 @@ def get_performance(symbol: str, db: Session = Depends(get_db)):
                     "date_then":      quotes[-30]["timestamp"]
                 }
 
-    except Exception as e:
-        result["periods"]["last_week"]  = {"error": str(e)}
-        result["periods"]["last_month"] = {"error": str(e)}
+    except Exception:
+        result["periods"]["last_week"]  = {"error": "No se pudo consultar CoinMarketCap"}
+        result["periods"]["last_month"] = {"error": "No se pudo consultar CoinMarketCap"}
+
+    if not result["periods"] or any("error" in period for period in result["periods"].values()):
+        fallback = get_performance_from_db(symbol.upper())
+        if fallback:
+            return fallback
 
     return result

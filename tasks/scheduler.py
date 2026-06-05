@@ -22,7 +22,7 @@ from services.binance_service import fetch_klines
 def task_market_data():
     db = SessionLocal()
     try:
-        data = fetch_top_cryptos(limit=50)
+        data = fetch_top_cryptos(limit=50, use_fallback=False)
         print(f"CMC devolvió {len(data)} cryptos")
 
         for item in data:

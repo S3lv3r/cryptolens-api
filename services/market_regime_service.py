@@ -2,6 +2,15 @@ from services.market_service import fetch_global_metrics, fetch_top_cryptos
 from services.binance_service import fetch_klines
 from services.technical_service import calculate_rsi
 
+REGIME_LABELS = {
+    "euphoric": "Euforia",
+    "panic": "Pánico",
+    "distribution": "Distribución",
+    "accumulation": "Acumulación",
+    "trending": "Tendencia",
+    "ranging": "Lateral"
+}
+
 def calculate_aggregate_rsi(top_cryptos: list) -> float:
     changes = [
         c["quote"]["USD"].get("percent_change_7d", 0) or 0
@@ -66,6 +75,7 @@ def detect_market_regime() -> dict:
 
     return {
         "regime":          regime,
+        "regime_label":    REGIME_LABELS.get(regime, regime),
         "confidence":      confidence,
         "description":     description,
         "metrics": {
@@ -79,5 +89,11 @@ def detect_market_regime() -> dict:
             "mcap_change_24h":round(mcap_change, 2),
             "total_market_cap":total_mcap,
             "total_volume_24h":total_vol
-        }
+        },
+        "_source": (
+            "base_de_datos_local"
+            if metrics.get("_source") == "base_de_datos_local"
+            or any(c.get("_source") == "base_de_datos_local" for c in top_cryptos)
+            else "coinmarketcap"
+        )
     }

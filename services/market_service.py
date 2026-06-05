@@ -1,6 +1,20 @@
 import requests
 import time
 from config import COINMARKETCAP_API_KEY, COINMARKETCAP_BASE_URL
+from services.fallback_service import (
+    get_latest_market_from_db,
+    get_price_history_by_cmc_id_from_db,
+    get_ohlcv_history_by_cmc_id_from_db,
+    get_performance_from_db,
+    get_trending_from_db,
+    get_global_metrics_from_db,
+)
+
+TRANSACTION_TYPE_LABELS = {
+    "accumulation": "Acumulación",
+    "exchange_deposit": "Depósito en exchange",
+    "unusual_activity": "Actividad inusual"
+}
 
 def get_headers():
     return {
@@ -8,7 +22,7 @@ def get_headers():
         "Accept": "application/json"
     }
 
-def fetch_top_cryptos(limit: int = 50) -> list:
+def fetch_top_cryptos(limit: int = 50, use_fallback: bool = True) -> list:
     url = f"{COINMARKETCAP_BASE_URL}/cryptocurrency/listings/latest"
     params = {
         "start": 1,
@@ -18,11 +32,19 @@ def fetch_top_cryptos(limit: int = 50) -> list:
         "sort_dir": "desc",
         "aux": "volume_24h_reported,circulating_supply,total_supply,max_supply,cmc_rank,num_market_pairs"
     }
-    response = requests.get(url, params=params, headers=get_headers(), timeout=10)
-    response.raise_for_status()
-    return response.json()["data"]
+    try:
+        response = requests.get(url, params=params, headers=get_headers(), timeout=10)
+        response.raise_for_status()
+        return response.json()["data"]
+    except Exception:
+        if not use_fallback:
+            raise
+        fallback = get_latest_market_from_db(limit=limit)
+        if fallback:
+            return fallback
+        raise
 
-def fetch_price_history(cmc_id: int, days: int = 60) -> list:
+def fetch_price_history(cmc_id: int, days: int = 60, use_fallback: bool = True) -> list:
     from datetime import datetime, timedelta
     import time
 
@@ -41,13 +63,21 @@ def fetch_price_history(cmc_id: int, days: int = 60) -> list:
 
     time.sleep(2)
 
-    response = requests.get(url, params=params, headers=get_headers(), timeout=15)
-    response.raise_for_status()
-    data = response.json()
-    quotes = data["data"]["quotes"]
-    return [q["quote"]["USD"]["price"] for q in quotes]
+    try:
+        response = requests.get(url, params=params, headers=get_headers(), timeout=15)
+        response.raise_for_status()
+        data = response.json()
+        quotes = data["data"]["quotes"]
+        return [q["quote"]["USD"]["price"] for q in quotes]
+    except Exception:
+        if not use_fallback:
+            raise
+        fallback = get_price_history_by_cmc_id_from_db(cmc_id, days=days)
+        if fallback:
+            return fallback
+        raise
 
-def fetch_ohlcv_history(cmc_id: int, days: int = 30) -> list:
+def fetch_ohlcv_history(cmc_id: int, days: int = 30, use_fallback: bool = True) -> list:
     from datetime import datetime, timedelta
     time_end   = datetime.utcnow()
     time_start = time_end - timedelta(days=days)
@@ -60,31 +90,50 @@ def fetch_ohlcv_history(cmc_id: int, days: int = 30) -> list:
         "interval":   "daily",
         "convert":    "USD"
     }
-    response = requests.get(url, params=params, headers=get_headers(), timeout=15)
-    response.raise_for_status()
-    data = response.json()
-    quotes = data["data"]["quotes"]
-    return [
-        {
-            "open":   q["quote"]["USD"]["open"],
-            "high":   q["quote"]["USD"]["high"],
-            "low":    q["quote"]["USD"]["low"],
-            "close":  q["quote"]["USD"]["close"],
-            "volume": q["quote"]["USD"]["volume"]
-        }
-        for q in quotes
-    ]
+    try:
+        response = requests.get(url, params=params, headers=get_headers(), timeout=15)
+        response.raise_for_status()
+        data = response.json()
+        quotes = data["data"]["quotes"]
+        return [
+            {
+                "open":   q["quote"]["USD"]["open"],
+                "high":   q["quote"]["USD"]["high"],
+                "low":    q["quote"]["USD"]["low"],
+                "close":  q["quote"]["USD"]["close"],
+                "volume": q["quote"]["USD"]["volume"]
+            }
+            for q in quotes
+        ]
+    except Exception:
+        if not use_fallback:
+            raise
+        fallback = get_ohlcv_history_by_cmc_id_from_db(cmc_id, days=days)
+        if fallback:
+            return fallback
+        raise
 
-def fetch_price_performance(cmc_id: int) -> dict:
+def fetch_price_performance(cmc_id: int, use_fallback: bool = True) -> dict:
     url = f"{COINMARKETCAP_BASE_URL}/cryptocurrency/price-performance-stats/latest"
     params = {
         "id":          cmc_id,
         "convert":     "USD",
         "time_period": "yesterday,last_week,last_month,last_quarter"
     }
-    response = requests.get(url, params=params, headers=get_headers(), timeout=10)
-    response.raise_for_status()
-    data = response.json()["data"]
+    try:
+        response = requests.get(url, params=params, headers=get_headers(), timeout=10)
+        response.raise_for_status()
+        data = response.json()["data"]
+    except Exception:
+        if not use_fallback:
+            raise
+        from services.fallback_service import get_latest_market_by_cmc_id_from_db
+        fallback_market = get_latest_market_by_cmc_id_from_db(cmc_id)
+        if fallback_market:
+            fallback = get_performance_from_db(fallback_market["symbol"])
+            if fallback:
+                return fallback
+        raise
 
     crypto_data = list(data.values())[0] if data else {}
     periods = crypto_data.get("periods", {})
@@ -178,13 +227,26 @@ def fetch_trending_latest() -> dict:
         results["most_visited"] = []
         print(f"X  trending/most-visited: {e}")
 
+    if not any(results.get(key) for key in ("trending", "gainers", "losers", "most_visited")):
+        fallback = get_trending_from_db(limit=10)
+        if any(fallback.get(key) for key in ("trending", "gainers", "losers", "most_visited")):
+            return fallback
+
     return results
 
-def fetch_global_metrics() -> dict:
+def fetch_global_metrics(use_fallback: bool = True) -> dict:
     url = f"{COINMARKETCAP_BASE_URL}/global-metrics/quotes/latest"
-    response = requests.get(url, headers=get_headers(), timeout=10)
-    response.raise_for_status()
-    return response.json()["data"]
+    try:
+        response = requests.get(url, headers=get_headers(), timeout=10)
+        response.raise_for_status()
+        return response.json()["data"]
+    except Exception:
+        if not use_fallback:
+            raise
+        fallback = get_global_metrics_from_db()
+        if fallback:
+            return fallback
+        raise
 
 def fetch_crypto_metadata(cmc_ids: list) -> dict:
     url = f"{COINMARKETCAP_BASE_URL}/cryptocurrency/info"
@@ -273,5 +335,6 @@ def detect_volume_spike(item: dict) -> dict | None:
         "volume_24h":     volume_24h,
         "vol_to_mcap_pct": round(vol_to_mcap, 2),
         "transaction_type": tx_type,
+        "transaction_type_label": TRANSACTION_TYPE_LABELS.get(tx_type, tx_type),
         "interpretation": interpretation
     }
